@@ -19,7 +19,7 @@ A replicated state manager for Roblox.
 ---
 ## API:
 
-Note: The <span style="color:#ea51f5">**Owner Only**</span> flag denotes that the method can only be used on Objects that were created Locally (**Server Calling Server Created State** or **Client Calling Client Created State**)
+Note: The <span style="color:#ea51f5">**[Owner Only]**</span> flag denotes that the method can only be used on Objects that were created Locally (**Server Calling Server Created State** or **Client Calling Client Created State**)
 
 <br>
 
