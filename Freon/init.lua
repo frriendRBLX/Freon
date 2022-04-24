@@ -224,8 +224,7 @@ function Freon:await(Key: string?, Timeout)
 		local Get = GetByKey(Key)
 
 		if Get then
-			print ('await concluded', Get.State)
-			return Get
+			return Get.State
 		else
 			print 'waiting'
 		end
