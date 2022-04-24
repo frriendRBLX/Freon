@@ -35,6 +35,7 @@ local TableUtil = require(script.Util.Table)
 
 --> Ghetto Enum
 Freon.AllPlayers = "ALL_PLRS"
+Freon.Debug = false
 
 --> Constants
 local IsServer = RunService:IsServer()
@@ -68,7 +69,6 @@ end
 --> Configuration
 local Updater = RunService.Heartbeat
 local MaxAwait = 30
-local DevMode = true
 
 --> Unique State
 local States = {} --| Holds 'Local' Keys
@@ -83,8 +83,8 @@ local DataCheckRate = 5 --| 5   (Seconds)
 --> Custom Print
 local _print = print
 local print = function(...)
-    if DevMode then
-        _print(...)
+    if Freon.Debug then
+        _print("[Freon]", ...)
     end
 end
 
@@ -122,6 +122,7 @@ end
 function ClientReadyPull(Player: Player)    
     for _, Obj: Freon in pairs(States) do
         task.wait(0.01)
+		print(Obj.State, "Pre Push")
         Obj:push(false, Player)
     end
 end
@@ -166,7 +167,6 @@ function Freon.new(
 	_Freon._OnUpdate = NewBind()
 
 	_Freon:set(InitialState)
-	States[Key] = _Freon
 
     --> Throw error if State is Directly Modified
     _Freon.__newindex = function(_, _, Value)
@@ -174,6 +174,8 @@ function Freon.new(
             Debug.Error(Debug.Errors.AttemptDirectChange)
         end
     end
+
+	States[Key] = _Freon
 
 	return _Freon
 end
@@ -185,27 +187,32 @@ function Freon:set(State: { any })
 
 	if not Identical then
 		self._OnUpdate:Fire()
-		print("Non Identical, Updating")
 		rawset(self, "State", State)
         rawset(self, "Changed", true)
-	else
-		print("Identical, Skipping")
+	end
+end
+
+--! Currently 1 Dimentional. Allow deeper indexing in the future
+function Freon:update(Key: string, Value: string)
+	if self.State[Key] then
+		rawset(self.State, Key, Value)
+		rawset(self, "Changed", true)
+		self._OnUpdate:Fire()
 	end
 end
 
 --> Get Current State, or Another by Key
-function Freon:get()
-    local Key = self.Key
+function Freon:get(Key: string?)
+    Key = Key or self.Key
 
     local Get = GetByKey(Key)
     if Get then
-        return Get
+        return Get.State
     end
 
     if ExpiredKeys[Key] then
         Debug.Warn(Debug.Errors.AttemptGetOnExpiredKey, Key, os.time() - ExpiredKeys[Key].ExpireTime)
     end
-
 end
 
 --> Wait for a Key with a given timeout (Default is MaxAwait)
@@ -217,8 +224,10 @@ function Freon:await(Key: string?, Timeout)
 		local Get = GetByKey(Key)
 
 		if Get then
-			print(Get)
+			print ('await concluded', Get.State)
 			return Get
+		else
+			print 'waiting'
 		end
 	end
 
@@ -231,7 +240,7 @@ function Freon:onUpdate(Callback)
 	table.insert(
 		self.Connections,
 		self._OnUpdate.Event:Connect(function()
-			Callback()
+			Callback(self.State)
 		end)
 	)
 end
@@ -240,7 +249,21 @@ end
 function Freon:push(Force: boolean?, Target: Player?)
     --> Target is for updating a single clients state internally
     if Target then
-        PushRemote:FireClient(Target, self.Key, self.Packet, self.Permanent)
+		local HasAccess = false
+
+		--> Verify Access
+		if typeof(self.Recipients) == "table" then
+			if table.find(self.Recipients, Target) then
+				HasAccess = true
+			end
+		elseif Target == self.Recipients or self.Recipients == self.AllPlayers then
+			HasAccess = true
+		end
+
+		if HasAccess then
+			PushRemote:FireClient(Target, self.Key, self.State, self.Permanent)
+		end
+
         return
     end
 	
@@ -283,7 +306,7 @@ function Freon:destroy()
 		Event:Disconnect()
 	end
 
-    print 'key purged'
+    print 'Key Purged'
 	--! Purge Key
 	States[self.Key] = nil
 end
