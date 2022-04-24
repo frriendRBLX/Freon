@@ -36,7 +36,7 @@ Note: The <span style="color:#ea51f5">**[Owner Only]**</span> flag denotes that 
 >}, Freon.AllPlayers, true)
 >```
 
-><span style="color:#78dbff">[**Client**]</span>  <span style="color:#e9ed7e">[**Yeilding**]</span>
+><span style="color:#e9ed7e">[**Yeilding**]</span>
 >
 >`State:await(Key: string): Freon`
 >
